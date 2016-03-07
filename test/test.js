@@ -1,7 +1,7 @@
 const flow = require('../lib/flow');
 const chai = require('chai');
 const spies = require('chai-spies');
-const should= chai.should();
+const should = chai.should();
 chai.use(spies);
 
 describe('flow', () => {
@@ -66,7 +66,7 @@ describe('flow', () => {
             callback.should.have.been.called.once;
             callback.should.have.been.called.with(null, []);
         });
-        it('should call all functions from array', () => {
+        it('should call one function', () => {
             var func = chai.spy((next) => {
                 next(null, 1);
             });
@@ -76,7 +76,7 @@ describe('flow', () => {
             callback.should.be.called.once;
             callback.should.be.called.with(null, [1]);
         });
-        it('Should call all functions', () => {
+        it('Should call n functions from array', () => {
             var n = 10;
             var funcs = [];
             var result = [];
@@ -125,10 +125,17 @@ describe('flow', () => {
                 next(null, value * value);
             });
             var callback = chai.spy();
-            flow.map([1, 2, 3], func, callback);
-            func.should.be.called.thrice;
+            var n = 10;
+            var values = [];
+            var expected = [];
+            for (var i = 0; i < n; i++) {
+                values.push(i);
+                expected.push(i * i);
+            }
+            flow.map(values, func, callback);
+            func.should.be.called.exactly(n);
             callback.should.be.called.once;
-            callback.should.be.called.with(null, [1, 4, 9]);
+            callback.should.be.called.with(null, expected);
         });
     });
 });
