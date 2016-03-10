@@ -1,130 +1,127 @@
 const flow = require('../lib/flow');
 const chai = require('chai');
-const spies = require('chai-spies');
+const sinonChai = require('sinon-chai');
 const should = chai.should();
-chai.use(spies);
+const sinon = require('sinon');
+chai.use(sinonChai);
 
 describe('flow', () => {
     describe('serial', () => {
         it('should call callback once if functions array is empty', () => {
-            var callback = chai.spy();
+            var callback = sinon.spy();
             flow.serial([], callback);
-            callback.should.have.been.called.once;
-            // Либо я не умею в документацию спайса, либо он не может в called.with(args)
-            //callback.should.have.been.called.with(null, null);
+            callback.should.have.been.calledOnce;
+            callback.should.have.been.calledWith(null, null);
         });
 
         it('should call one function', () => {
-            var mockFunc = chai.spy(next => {
+            var mockFunc = sinon.spy(next => {
                 next(null, 'result');
             });
-            var callback = chai.spy();
+            var callback = sinon.spy();
             flow.serial([mockFunc], callback);
-            mockFunc.should.have.been.called.once;
-            callback.should.have.been.called.once;
-            //странно, но в этой ситуации он работает почти адекватно
-            callback.should.have.been.called.with(null, 'result');
-            //хотя это тоже сработает О_о
-            //callback.should.have.been.called.with(null);
+            mockFunc.should.have.been.calledOnce;
+            callback.should.have.been.calledOnce;
+            callback.should.have.been.calledWith(null, 'result');
         });
 
         it('should pass result of first func to second func', () => {
-            var func1 = chai.spy(next => {
+            var func1 = sinon.spy(next => {
                 next(null, 1);
             });
-            var func2 = chai.spy((data, next) => {
+            var func2 = sinon.spy((data, next) => {
                 next(null, 2);
             });
-            var callback = chai.spy();
+            var callback = sinon.spy();
             flow.serial([func1, func2], callback);
-            func1.should.have.been.called.once;
-            func2.should.have.been.called.once;
-            callback.should.have.been.called.once;
-            callback.should.have.been.called.with(null, 2);
+            func1.should.have.been.calledOnce;
+            func2.should.have.been.calledOnce;
+            callback.should.have.been.calledOnce;
+            callback.should.have.been.calledWith(null, 2);
         });
 
         it('shouldn\'t call second func if first func fails', () => {
-            var mockFunc1 = chai.spy(next => {
+            var mockFunc1 = sinon.spy(next => {
                 next('error');
             });
-            var mockFunc2 = chai.spy((data, next) => {
+            var mockFunc2 = sinon.spy((data, next) => {
                 next(null, 2);
             });
-            var callback = chai.spy();
+            var callback = sinon.spy();
             flow.serial([mockFunc1, mockFunc2], callback);
-            mockFunc1.should.be.called.once;
-            mockFunc2.should.not.be.called;
-            callback.should.be.called.with('error');
-            callback.should.be.called.once;
+            mockFunc1.should.be.calledOnce;
+            mockFunc2.should.not.have.been.called;
+            callback.should.have.been.calledWith('error');
+            callback.should.have.been.calledOnce;
         });
     });
 
     describe('parallel', () => {
         it('should call callback if functions array is empty', () => {
-            var callback = chai.spy();
+            var callback = sinon.spy();
             flow.parallel([], callback);
-            callback.should.have.been.called.once;
-            callback.should.have.been.called.with(null, []);
+            callback.should.have.been.calledOnce;
+            callback.should.have.been.calledWith(null, []);
         });
         it('should call one function', () => {
-            var func = chai.spy((next) => {
+            var func = sinon.spy((next) => {
                 next(null, 1);
             });
-            var callback = chai.spy();
+            var callback = sinon.spy();
             flow.parallel([func], callback);
-            func.should.be.called.once;
-            callback.should.be.called.once;
-            callback.should.be.called.with(null, [1]);
+            func.should.have.been.calledOnce;
+            callback.should.have.been.calledOnce;
+            callback.should.have.been.calledWith(null, [1]);
         });
-        it('Should call n functions from array', () => {
+        it('should call several functions from array', () => {
             var n = 10;
             var funcs = [];
             var result = [];
             var mockCreator = function (index) {
-                return chai.spy(next => next(null, index));
+                return sinon.spy(next => next(null, index));
             };
             for (var i = 0; i < n; i++) {
-                funcs.push(mockCreator(i))
+                funcs.push(mockCreator(i));
                 result.push(i);
             }
-            var callback = chai.spy();
+            var callback = sinon.spy();
             flow.parallel(funcs, callback);
-            funcs.forEach(f => f.should.be.called.once);
-            callback.should.be.called.with(null, result);
+            funcs.forEach(f => f.should.have.been.calledOnce);
+            callback.should.have.been.calledWith(null, result);
         });
-        it('Should return error if any func fails', () => {
+        it('should return error if any func fails', () => {
             var funcs = [];
-            funcs.push(chai.spy((next) => {
+            funcs.push(sinon.spy((next) => {
                 next(null, 1);
             }));
-            funcs.push(chai.spy((next) => {
+            funcs.push(sinon.spy((next) => {
                 next('error');
             }));
-            funcs.push(chai.spy((next) => {
+            funcs.push(sinon.spy((next) => {
                 next(null, 3);
             }));
-            var callback = chai.spy();
+            var callback = sinon.spy();
             flow.parallel(funcs, callback);
-            funcs.forEach(f => f.should.be.called.once);
-            callback.should.be.called.once;
-            callback.should.be.called.with('error', [1, undefined, 3]);
+            funcs.forEach(f => f.should.have.been.calledOnce);
+            callback.should.have.been.calledOnce;
+            callback.should.have.been.calledWith('error', [1, undefined, 3]);
         });
     });
     describe('map', () => {
         it('should call callback if values array is empty', () => {
-            var func = () => {
-            };
-            var callback = chai.spy();
+            var func = sinon.spy();
+            var callback = sinon.spy();
             flow.map([], func, callback);
-            callback.should.have.been.called.once;
-            callback.should.have.been.called.with(null, []);
+            func.should.not.have.been.called;
+            callback.should.have.been.calledOnce;
+            callback.should.have.been.calledWith(null, []);
         });
 
         it('should apply func to values parallel', () => {
-            var func = chai.spy((value, next) => {
+            var func = sinon.spy((value, next) => {
                 next(null, value * value);
             });
-            var callback = chai.spy();
+            var callback = sinon.spy();
             var n = 10;
             var values = [];
             var expected = [];
@@ -133,11 +130,9 @@ describe('flow', () => {
                 expected.push(i * i);
             }
             flow.map(values, func, callback);
-            func.should.be.called.exactly(n);
-            callback.should.be.called.once;
-            callback.should.be.called.with(null, expected);
+            func.should.have.been.callCount(n);
+            callback.should.have.been.calledOnce;
+            callback.should.have.been.calledWith(null, expected);
         });
     });
 });
-
-//TODO use sinon?
