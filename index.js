@@ -46,16 +46,19 @@ flow.serial([
     }
 
 // Результат последней функции передаётся в этот колбэк
-], function (error, data) {
+], function (errors, data) {
     // Если в одной из асинхронных операции произошла ошибка – выводим её
-    if (error) {
-        console.error(error.message);
+    if (errors.some(a => a.length != 0)) {
+        errcons.forEach(a => {
+            if (a.length != 0) {
+                a.forEach(error => console.error(errors.message));
+            }
+        });
         return;
     }
 
     // Собранные параметры по файлам
     var stats = data[0];
-
     // Прочитанное содержимое файлов
     var contents = data[1];
     contents = contents
